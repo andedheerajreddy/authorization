@@ -6,7 +6,8 @@ const mongoose=require("mongoose");
 const ejs=require("ejs");
 const encrypt=require("mongoose-encryption");
 const app=express();
-const md5=require("md5");
+const  bcrypt=require("bcrypt");
+const saltRounds=10;
 app.use(bodyparser.urlencoded({extended:true}));
 app.set("view engine","ejs");
 app.use(express.static("public"));
@@ -31,8 +32,11 @@ app.route("/login")
      res.send(err);
      else{
       if(found){
-        if(found.password===md5(req.body.password))
-        res.render("secrets");
+        bcrypt.compare(req.body.password,found.password,function(er,ans){
+          if(ans===true)
+          res.render("secrets");
+
+        });
       }
      }
    });
@@ -42,16 +46,22 @@ app.route("/register")
   res.render("register",{});
 })
 .post(function(req,res){
-       const newUser= new User({
-            email:req.body.username,
-            password:md5(req.body.password)
-       });
-       newUser.save(function(err){
-         if(err)
-         res.send(err);
-         else
-         res.render("secrets");
-       });
+    bcrypt.hash(req.body.password,saltRounds,function(err,store){
+      const newUser= new User({
+           email:req.body.username,
+
+           password:store
+      });
+
+             newUser.save(function(err){
+               if(err)
+               res.send(err);
+               else
+               res.render("secrets");
+             });
+
+    });
+
 });
 app.listen(3000,function(){
   console.log("server started in port 3000");
